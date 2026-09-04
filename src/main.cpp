@@ -4,6 +4,9 @@
 #include "display.h"
 #include "touch.h"
 #include "ui.h"
+#include "sensors/environment.h"
+
+#include "sensors/environment.h"
 
 void setup() {
 
@@ -23,11 +26,14 @@ void setup() {
     displayInit();
     touchInit();
     uiInit();
+    environmentInit();
 
     Serial.println("System ready");
 }
 
 void loop() {
+    environmentUpdate();
+    uiUpdate();
 
     lv_timer_handler();
 

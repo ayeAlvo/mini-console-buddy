@@ -1,7 +1,10 @@
 #include "ui/screen_home.h"
 #include "ui/components/robot.h"
+#include "sensors/environment.h"
+#include <cstdio>
 
 static lv_obj_t* statusLabel = nullptr;
+static lv_obj_t* environmentLabel = nullptr;
 
 
 // ---------- Eventos ----------
@@ -234,4 +237,62 @@ void screenHomeCreate() {
     0,
     -12
 );
+
+environmentLabel = lv_label_create(screen);
+
+lv_label_set_text(
+    environmentLabel,
+    "TEMP -- C   HUM -- %"
+);
+
+lv_obj_set_style_text_color(
+    environmentLabel,
+    lv_color_hex(0xF8FAFC),
+    0
+);
+
+lv_obj_set_style_text_font(
+    environmentLabel,
+    &lv_font_montserrat_12,
+    0
+);
+
+lv_obj_align(
+    environmentLabel,
+    LV_ALIGN_BOTTOM_MID,
+    0,
+    -28
+);
+}
+
+void screenHomeUpdate() {
+
+    if (environmentLabel == nullptr) {
+        return;
+    }
+
+    if (environmentHasError()) {
+
+        lv_label_set_text(
+            environmentLabel,
+            "TEMP -- C   HUM -- %   SENSOR ERR"
+        );
+
+        return;
+    }
+
+    char buffer[64];
+
+    snprintf(
+        buffer,
+        sizeof(buffer),
+        "TEMP %.0f C°   HUM %.0f %%",
+        environmentGetTemperature(),
+        environmentGetHumidity()
+    );
+
+    lv_label_set_text(
+        environmentLabel,
+        buffer
+    );
 }
