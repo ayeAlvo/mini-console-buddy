@@ -1,0 +1,237 @@
+#include "ui/screen_home.h"
+#include "ui/components/robot.h"
+
+static lv_obj_t* statusLabel = nullptr;
+
+
+// ---------- Eventos ----------
+
+static void focusEvent(lv_event_t* event) {
+
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+
+        lv_label_set_text(
+            statusLabel,
+            "FOCUS SELECTED"
+        );
+    }
+}
+
+
+static void codeEvent(lv_event_t* event) {
+
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+
+        lv_label_set_text(
+            statusLabel,
+            "CODE SELECTED"
+        );
+    }
+}
+
+
+static void statusEvent(lv_event_t* event) {
+
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+
+        lv_label_set_text(
+            statusLabel,
+            "STATUS SELECTED"
+        );
+    }
+}
+
+
+// ---------- Botón reutilizable ----------
+
+static lv_obj_t* createButton(
+    lv_obj_t* parent,
+    const char* text,
+    lv_color_t color,
+    int x,
+    int y,
+    lv_event_cb_t eventCallback
+) {
+
+    lv_obj_t* button = lv_button_create(parent);
+
+    lv_obj_set_size(button, 82, 38);
+
+    lv_obj_set_pos(
+        button,
+        x,
+        y
+    );
+
+    lv_obj_set_style_bg_color(
+        button,
+        color,
+        0
+    );
+
+    lv_obj_set_style_radius(
+        button,
+        10,
+        0
+    );
+
+    lv_obj_set_style_shadow_width(
+        button,
+        0,
+        0
+    );
+
+    lv_obj_add_event_cb(
+        button,
+        eventCallback,
+        LV_EVENT_CLICKED,
+        nullptr
+    );
+
+    lv_obj_t* label =
+        lv_label_create(button);
+
+    lv_label_set_text(
+        label,
+        text
+    );
+
+    lv_obj_set_style_text_font(
+        label,
+        &lv_font_montserrat_14,
+        0
+    );
+
+    lv_obj_center(label);
+
+    return button;
+}
+
+
+// ---------- Home ----------
+
+void screenHomeCreate() {
+
+    lv_obj_t* screen =
+        lv_screen_active();
+
+    // Fondo
+    lv_obj_set_style_bg_color(
+        screen,
+        lv_color_hex(0x0F172A),
+        0
+    );
+
+    lv_obj_set_style_bg_grad_color(
+        screen,
+        lv_color_hex(0x1E293B),
+        0
+    );
+
+    lv_obj_set_style_bg_grad_dir(
+        screen,
+        LV_GRAD_DIR_VER,
+        0
+    );
+
+
+    // Título
+    lv_obj_t* title =
+        lv_label_create(screen);
+
+    lv_label_set_text(
+        title,
+        "MINI CONSOLE BUDDY"
+    );
+
+    lv_obj_set_style_text_color(
+        title,
+        lv_color_hex(0xF8FAFC),
+        0
+    );
+
+    lv_obj_set_style_text_font(
+        title,
+        &lv_font_montserrat_18,
+        0
+    );
+
+    lv_obj_align(
+        title,
+        LV_ALIGN_TOP_MID,
+        0,
+        12
+    );
+
+    // Robot
+    lv_obj_t* robot =
+        robotCreate(screen);
+
+    lv_obj_align(
+        robot,
+        LV_ALIGN_TOP_MID,
+        0,
+        42
+    );
+
+
+    // Primera fila botones
+
+    createButton(
+        screen,
+        "FOCUS",
+        lv_color_hex(0x22C55E),
+        20,
+        155,
+        focusEvent
+    );
+
+    createButton(
+        screen,
+        "CODE",
+        lv_color_hex(0x8B5CF6),
+        119,
+        155,
+        codeEvent
+    );
+
+
+    // Botón inferior
+    createButton(
+        screen,
+        "STATUS",
+        lv_color_hex(0x0EA5E9),
+        218,
+        155,
+        statusEvent
+    );
+
+
+    // Estado inferior
+    statusLabel =
+        lv_label_create(screen);
+
+    lv_label_set_text(
+        statusLabel,
+        "SYSTEM READY"
+    );
+
+    lv_obj_set_style_text_color(
+        statusLabel,
+        lv_color_hex(0x86EFAC),
+        0
+    );
+
+    lv_obj_set_style_text_font(
+        statusLabel,
+        &lv_font_montserrat_12,
+        0
+    );
+
+    lv_obj_align(
+    statusLabel,
+    LV_ALIGN_BOTTOM_MID,
+    0,
+    -12
+);
+}
