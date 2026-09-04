@@ -9,6 +9,7 @@
 static lv_obj_t* timerLabel = nullptr;
 static lv_obj_t* stateLabel = nullptr;
 static lv_obj_t* mainButtonLabel = nullptr;
+static lv_obj_t* focusRobot = nullptr;
 
 static bool running = false;
 static bool paused = false;
@@ -36,6 +37,8 @@ static void mainButtonEvent(lv_event_t* event) {
 
         lv_label_set_text(stateLabel, "FOCUSING");
         lv_label_set_text(mainButtonLabel, "PAUSE");
+        robotSetExpression(focusRobot, RobotExpression::FOCUSED);
+
     }
     else if (running) {
         pausedElapsed = millis() - startMillis;
@@ -45,6 +48,7 @@ static void mainButtonEvent(lv_event_t* event) {
 
         lv_label_set_text(stateLabel, "PAUSED");
         lv_label_set_text(mainButtonLabel, "RESUME");
+        robotSetExpression(focusRobot, RobotExpression::PAUSED);
     }
     else if (paused) {
         startMillis = millis() - pausedElapsed;
@@ -54,6 +58,7 @@ static void mainButtonEvent(lv_event_t* event) {
 
         lv_label_set_text(stateLabel, "FOCUSING");
         lv_label_set_text(mainButtonLabel, "PAUSE");
+        robotSetExpression(focusRobot, RobotExpression::FOCUSED);
     }
 }
 
@@ -70,6 +75,7 @@ static void stopButtonEvent(lv_event_t* event) {
     lv_label_set_text(timerLabel, "00:00:00");
     lv_label_set_text(stateLabel, "READY");
     lv_label_set_text(mainButtonLabel, "START");
+    robotSetExpression(focusRobot, RobotExpression::NORMAL);
 }
 
 void screenFocusCreate() {
@@ -137,11 +143,30 @@ void screenFocusCreate() {
         12
     );
 
-    // Robot
-    lv_obj_t* robot = robotCreate(screen);
+
+    focusRobot = robotCreate(screen);
+
+    if (running) {
+    robotSetExpression(
+        focusRobot,
+        RobotExpression::FOCUSED
+    );
+}
+else if (paused) {
+    robotSetExpression(
+        focusRobot,
+        RobotExpression::PAUSED
+    );
+}
+else {
+    robotSetExpression(
+        focusRobot,
+        RobotExpression::NORMAL
+    );
+}
 
     lv_obj_align(
-        robot,
+        focusRobot,
         LV_ALIGN_TOP_MID,
         -4,
         40
