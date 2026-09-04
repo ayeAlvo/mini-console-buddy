@@ -11,10 +11,15 @@ static lv_obj_t* environmentLabel = nullptr;
 
 // ---------- Eventos ----------
 
-static void focusEvent(lv_event_t* event) {
+static void openFocusDelayed(lv_timer_t* timer) {
+    lv_timer_delete(timer);
+    uiShowFocus();
+}
 
+
+static void focusEvent(lv_event_t* event) {
     if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
-        uiShowFocus();
+        lv_timer_create(openFocusDelayed, 153, nullptr);
     }
 }
 
