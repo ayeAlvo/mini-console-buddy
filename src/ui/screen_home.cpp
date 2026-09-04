@@ -2,6 +2,8 @@
 #include "ui/components/robot.h"
 #include "sensors/environment.h"
 #include <cstdio>
+#include "ui/screen_focus.h"
+#include "ui.h"
 
 static lv_obj_t* statusLabel = nullptr;
 static lv_obj_t* environmentLabel = nullptr;
@@ -12,36 +14,18 @@ static lv_obj_t* environmentLabel = nullptr;
 static void focusEvent(lv_event_t* event) {
 
     if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
-
-        lv_label_set_text(
-            statusLabel,
-            "FOCUS SELECTED"
-        );
+        uiShowFocus();
     }
 }
 
 
 static void codeEvent(lv_event_t* event) {
 
-    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
-
-        lv_label_set_text(
-            statusLabel,
-            "CODE SELECTED"
-        );
-    }
 }
 
 
 static void statusEvent(lv_event_t* event) {
 
-    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
-
-        lv_label_set_text(
-            statusLabel,
-            "STATUS SELECTED"
-        );
-    }
 }
 
 
@@ -115,6 +99,8 @@ static lv_obj_t* createButton(
 
 void screenHomeCreate() {
 
+    lv_obj_clean(lv_screen_active());
+
     lv_obj_t* screen =
         lv_screen_active();
 
@@ -173,7 +159,7 @@ void screenHomeCreate() {
     lv_obj_align(
         robot,
         LV_ALIGN_TOP_MID,
-        0,
+        -4,
         42
     );
 
