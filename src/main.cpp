@@ -1,32 +1,36 @@
 #include <Arduino.h>
-#include <TFT_eSPI.h>
 #include <SPI.h>
+#include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <DHT.h>
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 240
-
-// DHT11
+// DHT11 sensor
 #define DHTPIN 27
 #define DHTTYPE DHT11
 
-// Touch XPT2046
+DHT dht(DHTPIN, DHTTYPE);
+
+// Touchscreen pins
 #define XPT2046_IRQ 36
 #define XPT2046_MOSI 32
 #define XPT2046_MISO 39
 #define XPT2046_CLK 25
 #define XPT2046_CS 33
 
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+
 TFT_eSPI tft = TFT_eSPI();
 
 SPIClass touchscreenSPI = SPIClass(VSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
-DHT dht(DHTPIN, DHTTYPE);
-
 void setup() {
+    dht.begin();
     Serial.begin(115200);
+
+    pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, HIGH);
 
     // Touch
     touchscreenSPI.begin(
@@ -39,63 +43,85 @@ void setup() {
     touchscreen.begin(touchscreenSPI);
     touchscreen.setRotation(1);
 
-    // Backlight
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, HIGH);
-
-    // TFT
+    // Display
     tft.init();
     tft.setRotation(1);
 
-    // Test de colores
-    tft.fillScreen(TFT_RED);
-    delay(1000);
+    tft.fillScreen(TFT_WHITE);
+    tft.setTextColor(TFT_BLACK, TFT_WHITE);
 
-    tft.fillScreen(TFT_GREEN);
-    delay(1000);
-
-    tft.fillScreen(TFT_BLUE);
-    delay(1000);
-
-    tft.fillScreen(TFT_BLACK);
-
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.setTextSize(2);
     tft.drawCentreString(
-        "MINI CONSOLE BUDDY",
-        160,
-        90,
+        "TOUCH TEST",
+        SCREEN_WIDTH / 2,
+        30,
         2
     );
 
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.drawCentreString(
-        "SYSTEM READY",
-        160,
-        125,
+        "Touch the screen",
+        SCREEN_WIDTH / 2,
+        110,
         2
     );
 
-    // Sensor
-    dht.begin();
-
-    Serial.println("Mini Console Buddy started");
+    Serial.println("Touch test started");
 }
 
 void loop() {
-    if (touchscreen.tirqTouched() && touchscreen.touched()) {
+    static unsigned long lastRead = 0;
+
+if (millis() - lastRead >= 3000) {
+    lastRead = millis();
+
+    float temperatura = dht.readTemperature();
+    float humedad = dht.readHumidity();
+
+    Serial.print("Temp: ");
+    Serial.print(temperatura);
+    Serial.print(" C | Humedad: ");
+    Serial.print(humedad);
+    Serial.println(" %");
+}
+
+    if (touchscreen.touched()) {
 
         TS_Point p = touchscreen.getPoint();
 
         int x = map(p.x, 200, 3700, 1, SCREEN_WIDTH);
         int y = map(p.y, 240, 3800, 1, SCREEN_HEIGHT);
+        int z = p.z;
 
-        Serial.print("Touch X: ");
+        Serial.print("X = ");
         Serial.print(x);
+        Serial.print(" | Y = ");
+        Serial.print(y);
+        Serial.print(" | Pressure = ");
+        Serial.println(z);
 
-        Serial.print(" Y: ");
-        Serial.println(y);
+        tft.fillScreen(TFT_WHITE);
+        tft.setTextColor(TFT_BLACK, TFT_WHITE);
 
-        delay(150);
+        tft.drawCentreString(
+            "X = " + String(x),
+            SCREEN_WIDTH / 2,
+            70,
+            2
+        );
+
+        tft.drawCentreString(
+            "Y = " + String(y),
+            SCREEN_WIDTH / 2,
+            100,
+            2
+        );
+
+        tft.drawCentreString(
+            "Pressure = " + String(z),
+            SCREEN_WIDTH / 2,
+            130,
+            2
+        );
+
+        delay(100);
     }
 }
