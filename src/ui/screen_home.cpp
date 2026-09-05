@@ -57,8 +57,10 @@ static void codeEvent(lv_event_t *event)
 {
 }
 
-static void statusEvent(lv_event_t *event)
-{
+static void statusEvent(lv_event_t* event) {
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+        uiShowStatus();
+    }
 }
 
 // ---------- Botón reutilizable ----------
@@ -285,7 +287,7 @@ void screenHomeUpdate()
     snprintf(
         buffer,
         sizeof(buffer),
-        "TEMP %.0f C°   HUM %.0f %%",
+        "TEMP %.0f° C  HUM %.0f %%",
         environmentGetTemperature(),
         environmentGetHumidity());
 
