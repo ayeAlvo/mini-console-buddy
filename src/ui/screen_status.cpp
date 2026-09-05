@@ -6,13 +6,11 @@
 
 #include <lvgl.h>
 #include <cstdio>
-#include <esp_system.h>
-#include <esp_timer.h>
 
-static lv_obj_t *temperatureLabel = nullptr;
-static lv_obj_t *humidityLabel = nullptr;
 static lv_obj_t *uptimeLabel = nullptr;
 static lv_obj_t *heapLabel = nullptr;
+static lv_obj_t *flashLabel = nullptr;
+static lv_obj_t *cpuLabel = nullptr;
 
 static void backEvent(lv_event_t *event)
 {
@@ -163,62 +161,6 @@ void screenStatusCreate()
         0,
         16);
 
-    // Temperatura
-    lv_obj_t *tempCard = createStatusCard(
-        screen,
-        "TEMP",
-        35,
-        55,
-        120,
-        65,
-        lv_color_hex(0x38BDF8));
-
-    temperatureLabel = lv_label_create(tempCard);
-
-    lv_obj_set_style_text_color(
-        temperatureLabel,
-        lv_color_hex(0xF8FAFC),
-        0);
-
-    lv_obj_set_style_text_font(
-        temperatureLabel,
-        &lv_font_montserrat_18,
-        0);
-
-    lv_obj_align(
-        temperatureLabel,
-        LV_ALIGN_BOTTOM_LEFT,
-        0,
-        0);
-
-    // Humedad
-    lv_obj_t *humCard = createStatusCard(
-        screen,
-        "HUM",
-        175,
-        55,
-        110,
-        65,
-        lv_color_hex(0x22C55E));
-
-    humidityLabel = lv_label_create(humCard);
-
-    lv_obj_set_style_text_color(
-        humidityLabel,
-        lv_color_hex(0xF8FAFC),
-        0);
-
-    lv_obj_set_style_text_font(
-        humidityLabel,
-        &lv_font_montserrat_18,
-        0);
-
-    lv_obj_align(
-        humidityLabel,
-        LV_ALIGN_BOTTOM_LEFT,
-        0,
-        0);
-
     // Uptime
     lv_obj_t *uptimeCard = createStatusCard(
         screen,
@@ -247,13 +189,12 @@ void screenStatusCreate()
         0,
         0);
 
-    // Heap libre
     // Free RAM
     lv_obj_t *heapCard = createStatusCard(
         screen,
         "FREE RAM",
         35,
-        180,
+        185,
         250,
         50,
         lv_color_hex(0xF59E0B));
@@ -275,59 +216,80 @@ void screenStatusCreate()
         LV_ALIGN_BOTTOM_LEFT,
         0,
         0);
+
+    // Flash
+    lv_obj_t *flashCard = createStatusCard(
+        screen,
+        "FLASH",
+        35,
+        60,
+        120,
+        55,
+        lv_color_hex(0x14B8A6));
+
+    flashLabel = lv_label_create(flashCard);
+
+    lv_obj_set_style_text_color(
+        flashLabel,
+        lv_color_hex(0xF8FAFC),
+        0);
+
+    lv_obj_set_style_text_font(
+        flashLabel,
+        &lv_font_montserrat_16,
+        0);
+
+    lv_obj_align(
+        flashLabel,
+        LV_ALIGN_BOTTOM_LEFT,
+        0,
+        0);
+
+    // CPU
+    lv_obj_t *cpuCard = createStatusCard(
+        screen,
+        "CPU",
+        165,
+        60,
+        120,
+        55,
+        lv_color_hex(0xEC4899));
+
+    cpuLabel = lv_label_create(cpuCard);
+
+    lv_obj_set_style_text_color(
+        cpuLabel,
+        lv_color_hex(0xF8FAFC),
+        0);
+
+    lv_obj_set_style_text_font(
+        cpuLabel,
+        &lv_font_montserrat_16,
+        0);
+
+    lv_obj_align(
+        cpuLabel,
+        LV_ALIGN_BOTTOM_LEFT,
+        0,
+        0);
 }
 
 void screenStatusUpdate()
 {
 
     if (
-        temperatureLabel == nullptr ||
-        humidityLabel == nullptr ||
         uptimeLabel == nullptr ||
-        heapLabel == nullptr)
+        heapLabel == nullptr ||
+        flashLabel == nullptr ||
+        cpuLabel == nullptr)
     {
         return;
     }
 
     char buffer[64];
 
-    if (environmentHasError())
-    {
-
-        lv_label_set_text(
-            temperatureLabel,
-            "TEMP: -- C");
-
-        lv_label_set_text(
-            humidityLabel,
-            "HUM: -- %");
-    }
-    else
-    {
-
-        snprintf(
-            buffer,
-            sizeof(buffer),
-            "TEMP: %.0f° C",
-            environmentGetTemperature());
-
-        lv_label_set_text(
-            temperatureLabel,
-            buffer);
-
-        snprintf(
-            buffer,
-            sizeof(buffer),
-            "HUM: %.0f %%",
-            environmentGetHumidity());
-
-        lv_label_set_text(
-            humidityLabel,
-            buffer);
-    }
-
     unsigned long totalSeconds =
-        static_cast<unsigned long>(esp_timer_get_time() / 1000000ULL);
+        systemGetUptimeSeconds();
 
     unsigned long hours =
         totalSeconds / 3600;
@@ -341,7 +303,7 @@ void screenStatusUpdate()
     snprintf(
         buffer,
         sizeof(buffer),
-        "UPTIME: %02lu:%02lu:%02lu",
+        "%02lu:%02lu:%02lu",
         hours,
         minutes,
         seconds);
@@ -353,10 +315,30 @@ void screenStatusUpdate()
     snprintf(
         buffer,
         sizeof(buffer),
-        "FREE RAM: %lu KB",
-        esp_get_free_heap_size() / 1024);
+        "%lu KB",
+        systemGetFreeHeap() / 1024);
 
     lv_label_set_text(
         heapLabel,
+        buffer);
+
+    snprintf(
+        buffer,
+        sizeof(buffer),
+        "%lu MB",
+        systemGetFlashSize() / (1024 * 1024));
+
+    lv_label_set_text(
+        flashLabel,
+        buffer);
+
+    snprintf(
+        buffer,
+        sizeof(buffer),
+        "%lu MHz",
+        systemGetCpuFrequency());
+
+    lv_label_set_text(
+        cpuLabel,
         buffer);
 }
