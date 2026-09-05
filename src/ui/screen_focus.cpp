@@ -6,10 +6,10 @@
 #include <cstdio>
 #include <Arduino.h>
 
-static lv_obj_t* timerLabel = nullptr;
-static lv_obj_t* stateLabel = nullptr;
-static lv_obj_t* mainButtonLabel = nullptr;
-static lv_obj_t* focusRobot = nullptr;
+static lv_obj_t *timerLabel = nullptr;
+static lv_obj_t *stateLabel = nullptr;
+static lv_obj_t *mainButtonLabel = nullptr;
+static lv_obj_t *focusRobot = nullptr;
 
 static bool running = false;
 static bool paused = false;
@@ -17,20 +17,69 @@ static bool paused = false;
 static unsigned long startMillis = 0;
 static unsigned long pausedElapsed = 0;
 
+static void restoreFocusRobot(lv_timer_t *timer)
+{
+    lv_timer_delete(timer);
 
-static void backEvent(lv_event_t* event) {
+    if (focusRobot == nullptr)
+    {
+        return;
+    }
 
-    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    if (running)
+    {
+        robotSetExpression(
+            focusRobot,
+            RobotExpression::FOCUSED);
+    }
+    else if (paused)
+    {
+        robotSetExpression(
+            focusRobot,
+            RobotExpression::PAUSED);
+    }
+    else
+    {
+        robotSetExpression(
+            focusRobot,
+            RobotExpression::NORMAL);
+    }
+}
+
+static void focusRobotClickEvent(lv_event_t *event)
+{
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED)
+    {
+
+        robotSetExpression(
+            focusRobot,
+            RobotExpression::HAPPY);
+
+        lv_timer_create(
+            restoreFocusRobot,
+            700,
+            nullptr);
+    }
+}
+
+static void backEvent(lv_event_t *event)
+{
+
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED)
+    {
         uiShowHome();
     }
 }
 
-static void mainButtonEvent(lv_event_t* event) {
-    if (lv_event_get_code(event) != LV_EVENT_CLICKED) {
+static void mainButtonEvent(lv_event_t *event)
+{
+    if (lv_event_get_code(event) != LV_EVENT_CLICKED)
+    {
         return;
     }
 
-    if (!running && !paused) {
+    if (!running && !paused)
+    {
         running = true;
         paused = false;
         startMillis = millis();
@@ -38,9 +87,9 @@ static void mainButtonEvent(lv_event_t* event) {
         lv_label_set_text(stateLabel, "FOCUSING");
         lv_label_set_text(mainButtonLabel, "PAUSE");
         robotSetExpression(focusRobot, RobotExpression::FOCUSED);
-
     }
-    else if (running) {
+    else if (running)
+    {
         pausedElapsed = millis() - startMillis;
 
         running = false;
@@ -50,7 +99,8 @@ static void mainButtonEvent(lv_event_t* event) {
         lv_label_set_text(mainButtonLabel, "RESUME");
         robotSetExpression(focusRobot, RobotExpression::PAUSED);
     }
-    else if (paused) {
+    else if (paused)
+    {
         startMillis = millis() - pausedElapsed;
 
         running = true;
@@ -62,8 +112,10 @@ static void mainButtonEvent(lv_event_t* event) {
     }
 }
 
-static void stopButtonEvent(lv_event_t* event) {
-    if (lv_event_get_code(event) != LV_EVENT_CLICKED) {
+static void stopButtonEvent(lv_event_t *event)
+{
+    if (lv_event_get_code(event) != LV_EVENT_CLICKED)
+    {
         return;
     }
 
@@ -78,32 +130,30 @@ static void stopButtonEvent(lv_event_t* event) {
     robotSetExpression(focusRobot, RobotExpression::NORMAL);
 }
 
-void screenFocusCreate() {
+void screenFocusCreate()
+{
 
     lv_obj_clean(lv_screen_active());
 
-    lv_obj_t* screen = lv_screen_active();
+    lv_obj_t *screen = lv_screen_active();
 
     lv_obj_set_style_bg_color(
         screen,
         lv_color_hex(0x0F172A),
-        0
-    );
+        0);
 
     lv_obj_set_style_bg_grad_color(
         screen,
         lv_color_hex(0x1E293B),
-        0
-    );
+        0);
 
     lv_obj_set_style_bg_grad_dir(
         screen,
         LV_GRAD_DIR_VER,
-        0
-    );
+        0);
 
     // Back
-    lv_obj_t* backButton = lv_button_create(screen);
+    lv_obj_t *backButton = lv_button_create(screen);
     lv_obj_set_size(backButton, 42, 34);
     lv_obj_set_pos(backButton, 10, 10);
     lv_obj_set_style_radius(backButton, 8, 0);
@@ -112,88 +162,88 @@ void screenFocusCreate() {
         backButton,
         backEvent,
         LV_EVENT_CLICKED,
-        nullptr
-    );
+        nullptr);
 
-    lv_obj_t* backLabel = lv_label_create(backButton);
+    lv_obj_t *backLabel = lv_label_create(backButton);
     lv_label_set_text(backLabel, "<");
     lv_obj_center(backLabel);
 
     // Title
-    lv_obj_t* title = lv_label_create(screen);
+    lv_obj_t *title = lv_label_create(screen);
 
     lv_label_set_text(title, "FOCUS MODE");
 
     lv_obj_set_style_text_font(
         title,
         &lv_font_montserrat_18,
-        0
-    );
+        0);
 
     lv_obj_set_style_text_color(
         title,
         lv_color_hex(0xF8FAFC),
-        0
-    );
+        0);
 
     lv_obj_align(
         title,
         LV_ALIGN_TOP_MID,
         0,
-        12
-    );
-
+        12);
 
     focusRobot = robotCreate(screen);
 
-    if (running) {
-    robotSetExpression(
-        focusRobot,
-        RobotExpression::FOCUSED
-    );
-}
-else if (paused) {
-    robotSetExpression(
-        focusRobot,
-        RobotExpression::PAUSED
-    );
-}
-else {
-    robotSetExpression(
-        focusRobot,
-        RobotExpression::NORMAL
-    );
-}
+    if (running)
+    {
+        robotSetExpression(
+            focusRobot,
+            RobotExpression::FOCUSED);
+    }
+    else if (paused)
+    {
+        robotSetExpression(
+            focusRobot,
+            RobotExpression::PAUSED);
+    }
+    else
+    {
+        robotSetExpression(
+            focusRobot,
+            RobotExpression::NORMAL);
+    }
 
     lv_obj_align(
         focusRobot,
         LV_ALIGN_TOP_MID,
         -4,
-        40
-    );
+        40);
+
+    lv_obj_add_flag(
+        focusRobot,
+        LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_add_event_cb(
+        focusRobot,
+        focusRobotClickEvent,
+        LV_EVENT_CLICKED,
+        nullptr);
 
     // State
     stateLabel = lv_label_create(screen);
 
     lv_label_set_text(
         stateLabel,
-        running ? "FOCUSING" :
-        paused ? "PAUSED" :
-        "READY"
-    );
+        running ? "FOCUSING" : paused ? "PAUSED"
+                                      : "READY");
 
     lv_obj_set_style_text_color(
         stateLabel,
         lv_color_hex(0x86EFAC),
-        0
-    );
+        0);
 
     lv_obj_align(
         stateLabel,
         LV_ALIGN_CENTER,
         0,
-        48
-    );
+        48);
 
     // Timer
     timerLabel = lv_label_create(screen);
@@ -201,25 +251,22 @@ else {
     lv_obj_set_style_text_font(
         timerLabel,
         &lv_font_montserrat_20,
-        0
-    );
+        0);
 
     lv_obj_set_style_text_color(
         timerLabel,
         lv_color_hex(0xF8FAFC),
-        0
-    );
+        0);
 
     lv_obj_align(
         timerLabel,
         LV_ALIGN_CENTER,
         0,
         // 26
-        24
-    );
+        24);
 
     // Main button
-    lv_obj_t* mainButton = lv_button_create(screen);
+    lv_obj_t *mainButton = lv_button_create(screen);
 
     lv_obj_set_size(mainButton, 105, 40);
 
@@ -227,35 +274,30 @@ else {
         mainButton,
         LV_ALIGN_BOTTOM_MID,
         -58,
-        -14
-    );
+        -14);
 
     lv_obj_set_style_bg_color(
         mainButton,
         lv_color_hex(0x22C55E),
-        0
-    );
+        0);
 
     lv_obj_add_event_cb(
         mainButton,
         mainButtonEvent,
         LV_EVENT_CLICKED,
-        nullptr
-    );
+        nullptr);
 
     mainButtonLabel = lv_label_create(mainButton);
 
     lv_label_set_text(
         mainButtonLabel,
-        running ? "PAUSE" :
-        paused ? "RESUME" :
-        "START"
-    );
+        running ? "PAUSE" : paused ? "RESUME"
+                                   : "START");
 
     lv_obj_center(mainButtonLabel);
 
     // Stop button
-    lv_obj_t* stopButton = lv_button_create(screen);
+    lv_obj_t *stopButton = lv_button_create(screen);
 
     lv_obj_set_size(stopButton, 105, 40);
 
@@ -263,23 +305,20 @@ else {
         stopButton,
         LV_ALIGN_BOTTOM_MID,
         58,
-        -14
-    );
+        -14);
 
     lv_obj_set_style_bg_color(
         stopButton,
         lv_color_hex(0xEF4444),
-        0
-    );
+        0);
 
     lv_obj_add_event_cb(
         stopButton,
         stopButtonEvent,
         LV_EVENT_CLICKED,
-        nullptr
-    );
+        nullptr);
 
-    lv_obj_t* stopLabel = lv_label_create(stopButton);
+    lv_obj_t *stopLabel = lv_label_create(stopButton);
 
     lv_label_set_text(stopLabel, "STOP");
 
@@ -288,15 +327,18 @@ else {
     screenFocusUpdate();
 }
 
-void screenFocusUpdate() {
+void screenFocusUpdate()
+{
 
-    if (timerLabel == nullptr) {
+    if (timerLabel == nullptr)
+    {
         return;
     }
 
     unsigned long elapsed = pausedElapsed;
 
-    if (running) {
+    if (running)
+    {
         elapsed = millis() - startMillis;
     }
 
@@ -314,8 +356,7 @@ void screenFocusUpdate() {
         "%02lu:%02lu:%02lu",
         hours,
         minutes,
-        seconds
-    );
+        seconds);
 
     lv_label_set_text(timerLabel, buffer);
 }
