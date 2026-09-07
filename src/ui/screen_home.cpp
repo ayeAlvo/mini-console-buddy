@@ -53,8 +53,12 @@ static void focusEvent(lv_event_t *event)
     }
 }
 
-static void codeEvent(lv_event_t *event)
+static void codeEvent(lv_event_t* event)
 {
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED)
+    {
+        uiShowCode();
+    }
 }
 
 static void statusEvent(lv_event_t* event) {

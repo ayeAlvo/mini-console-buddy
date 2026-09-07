@@ -2,12 +2,14 @@
 #include "ui/screen_home.h"
 #include "ui/screen_focus.h"
 #include "ui/screen_status.h"
+#include "ui/screen_code.h"
 
 enum class Screen
 {
     HOME,
     FOCUS,
-    STATUS
+    STATUS,
+    CODE
 };
 
 static Screen currentScreen = Screen::HOME;
@@ -52,5 +54,16 @@ void uiUpdate()
     case Screen::STATUS:
         screenStatusUpdate();
         break;
+
+    case Screen::CODE:
+        screenCodeUpdate();
+        break;
     }
+    
+}
+
+void uiShowCode()
+{
+    currentScreen = Screen::CODE;
+    screenCodeCreate();
 }
