@@ -4,9 +4,13 @@
 #include "ui.h"
 
 #include <lvgl.h>
+#include <Arduino.h>
+#include <cstdio>
 
 static lv_obj_t *commandLabel = nullptr;
 static lv_obj_t *descriptionLabel = nullptr;
+static bool cursorVisible = true;
+static unsigned long lastCursorBlink = 0;
 
 static void nextEvent(lv_event_t *event)
 {
@@ -251,4 +255,29 @@ void screenCodeCreate()
 
 void screenCodeUpdate()
 {
+    if (commandLabel == nullptr)
+    {
+        return;
+    }
+
+    if (millis() - lastCursorBlink >= 500)
+    {
+        lastCursorBlink = millis();
+        cursorVisible = !cursorVisible;
+
+        const CodeItem &item = codeGetCurrentItem();
+
+        char buffer[64];
+
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "%s%s",
+            item.command,
+            cursorVisible ? "_" : "");
+
+        lv_label_set_text(
+            commandLabel,
+            buffer);
+    }
 }
