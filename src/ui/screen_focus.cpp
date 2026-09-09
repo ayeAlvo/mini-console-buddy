@@ -6,19 +6,13 @@
 #include <cstdio>
 #include <Arduino.h>
 #include "ui/components/tomato.h"
+#include "focus/free_focus.h"
+#include "focus/pomodoro.h"
 
 enum class FocusMode
 {
     FREE,
     POMODORO
-};
-
-enum class PomodoroPhase
-{
-    WORK,
-    BREAK_READY,
-    BREAK,
-    WORK_READY
 };
 
 static lv_obj_t *timerLabel = nullptr;
@@ -28,17 +22,7 @@ static lv_obj_t *focusRobot = nullptr;
 static lv_obj_t *freeModeButton = nullptr;
 static lv_obj_t *pomodoroModeButton = nullptr;
 static lv_obj_t *pomodoroIcon = nullptr;
-static PomodoroPhase pomodoroPhase = PomodoroPhase::WORK;
-// static const unsigned long POMODORO_WORK_MS = 25UL * 60UL * 1000UL;
-// static const unsigned long POMODORO_BREAK_MS = 5UL * 60UL * 1000UL;
-static const unsigned long POMODORO_WORK_MS = 10UL * 1000UL;
-static const unsigned long POMODORO_BREAK_MS = 5UL * 1000UL;
 
-static bool running = false;
-static bool paused = false;
-
-static unsigned long startMillis = 0;
-static unsigned long pausedElapsed = 0;
 static FocusMode currentFocusMode = FocusMode::FREE;
 
 static void updateModeButtons()
@@ -103,23 +87,56 @@ static void restoreFocusRobot(lv_timer_t *timer)
         return;
     }
 
-    if (running)
+    if (currentFocusMode == FocusMode::FREE)
     {
-        robotSetExpression(
-            focusRobot,
-            RobotExpression::FOCUSED);
-    }
-    else if (paused)
-    {
-        robotSetExpression(
-            focusRobot,
-            RobotExpression::PAUSED);
+        if (freeFocusIsRunning())
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::FOCUSED);
+        }
+        else if (freeFocusIsPaused())
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::PAUSED);
+        }
+        else
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::NORMAL);
+        }
     }
     else
     {
-        robotSetExpression(
-            focusRobot,
-            RobotExpression::NORMAL);
+        if (pomodoroIsRunning())
+        {
+            if (pomodoroGetPhase() == PomodoroPhase::BREAK)
+            {
+                robotSetExpression(
+                    focusRobot,
+                    RobotExpression::PAUSED);
+            }
+            else
+            {
+                robotSetExpression(
+                    focusRobot,
+                    RobotExpression::FOCUSED);
+            }
+        }
+        else if (pomodoroIsPaused())
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::PAUSED);
+        }
+        else
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::NORMAL);
+        }
     }
 }
 
@@ -156,105 +173,9 @@ static void mainButtonEvent(lv_event_t *event)
     }
     if (currentFocusMode == FocusMode::FREE)
     {
-        if (!running && !paused)
+        if (!freeFocusIsRunning() && !freeFocusIsPaused())
         {
-            running = true;
-            paused = false;
-            startMillis = millis();
-
-            lv_label_set_text(stateLabel, "FOCUSING");
-            lv_label_set_text(mainButtonLabel, "PAUSE");
-            robotSetExpression(focusRobot, RobotExpression::FOCUSED);
-        }
-        else if (running)
-        {
-            pausedElapsed = millis() - startMillis;
-
-            running = false;
-            paused = true;
-
-            lv_label_set_text(stateLabel, "PAUSED");
-            lv_label_set_text(mainButtonLabel, "RESUME");
-            robotSetExpression(focusRobot, RobotExpression::PAUSED);
-        }
-        else if (paused)
-        {
-            startMillis = millis() - pausedElapsed;
-
-            running = true;
-            paused = false;
-
-            lv_label_set_text(stateLabel, "FOCUSING");
-            lv_label_set_text(mainButtonLabel, "PAUSE");
-            robotSetExpression(focusRobot, RobotExpression::FOCUSED);
-        }
-    }
-    else if (currentFocusMode == FocusMode::POMODORO)
-    {
-        if (
-            !running &&
-            !paused &&
-            pomodoroPhase == PomodoroPhase::BREAK_READY)
-        {
-            pomodoroPhase = PomodoroPhase::BREAK;
-
-            running = true;
-            paused = false;
-
-            startMillis = millis();
-            pausedElapsed = 0;
-
-            lv_label_set_text(
-                stateLabel,
-                "BREAK");
-
-            lv_label_set_text(
-                mainButtonLabel,
-                "PAUSE");
-
-            robotSetExpression(
-                focusRobot,
-                RobotExpression::PAUSED);
-
-            return;
-        }
-
-        if (
-            !running &&
-            !paused &&
-            pomodoroPhase == PomodoroPhase::WORK_READY)
-        {
-            pomodoroPhase = PomodoroPhase::WORK;
-
-            running = true;
-            paused = false;
-
-            startMillis = millis();
-            pausedElapsed = 0;
-
-            lv_label_set_text(
-                stateLabel,
-                "FOCUSING");
-
-            lv_label_set_text(
-                mainButtonLabel,
-                "PAUSE");
-
-            robotSetExpression(
-                focusRobot,
-                RobotExpression::FOCUSED);
-
-            return;
-        }
-
-        if (!running && !paused)
-        {
-            running = true;
-            paused = false;
-            startMillis = millis();
-            pausedElapsed = 0;
-
-            pomodoroPhase = PomodoroPhase::WORK;
+            freeFocusStart();
 
             lv_label_set_text(
                 stateLabel,
@@ -268,12 +189,9 @@ static void mainButtonEvent(lv_event_t *event)
                 focusRobot,
                 RobotExpression::FOCUSED);
         }
-        else if (running)
+        else if (freeFocusIsRunning())
         {
-            pausedElapsed = millis() - startMillis;
-
-            running = false;
-            paused = true;
+            freeFocusPause();
 
             lv_label_set_text(
                 stateLabel,
@@ -287,12 +205,9 @@ static void mainButtonEvent(lv_event_t *event)
                 focusRobot,
                 RobotExpression::PAUSED);
         }
-        else if (paused)
+        else if (freeFocusIsPaused())
         {
-            startMillis = millis() - pausedElapsed;
-
-            running = true;
-            paused = false;
+            freeFocusResume();
 
             lv_label_set_text(
                 stateLabel,
@@ -301,6 +216,78 @@ static void mainButtonEvent(lv_event_t *event)
             lv_label_set_text(
                 mainButtonLabel,
                 "PAUSE");
+
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::FOCUSED);
+        }
+    }
+    else if (currentFocusMode == FocusMode::POMODORO)
+    {
+        PomodoroPhase phase = pomodoroGetPhase();
+
+        if (
+            !pomodoroIsRunning() &&
+            !pomodoroIsPaused() &&
+            phase == PomodoroPhase::BREAK_READY)
+        {
+            pomodoroStartBreak();
+
+            lv_label_set_text(stateLabel, "BREAK");
+            lv_label_set_text(mainButtonLabel, "PAUSE");
+
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::PAUSED);
+
+            return;
+        }
+
+        if (
+            !pomodoroIsRunning() &&
+            !pomodoroIsPaused() &&
+            phase == PomodoroPhase::WORK_READY)
+        {
+            pomodoroStartWork();
+
+            lv_label_set_text(stateLabel, "FOCUSING");
+            lv_label_set_text(mainButtonLabel, "PAUSE");
+
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::FOCUSED);
+
+            return;
+        }
+
+        if (!pomodoroIsRunning() && !pomodoroIsPaused())
+        {
+            pomodoroStartWork();
+
+            lv_label_set_text(stateLabel, "FOCUSING");
+            lv_label_set_text(mainButtonLabel, "PAUSE");
+
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::FOCUSED);
+        }
+        else if (pomodoroIsRunning())
+        {
+            pomodoroPause();
+
+            lv_label_set_text(stateLabel, "PAUSED");
+            lv_label_set_text(mainButtonLabel, "RESUME");
+
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::PAUSED);
+        }
+        else if (pomodoroIsPaused())
+        {
+            pomodoroResume();
+
+            lv_label_set_text(stateLabel, "FOCUSING");
+            lv_label_set_text(mainButtonLabel, "PAUSE");
 
             robotSetExpression(
                 focusRobot,
@@ -316,15 +303,34 @@ static void stopButtonEvent(lv_event_t *event)
         return;
     }
 
-    running = false;
-    paused = false;
-    startMillis = 0;
-    pausedElapsed = 0;
+    if (currentFocusMode == FocusMode::FREE)
+    {
+        freeFocusStop();
 
-    lv_label_set_text(timerLabel, "00:00:00");
-    lv_label_set_text(stateLabel, "READY");
-    lv_label_set_text(mainButtonLabel, "START");
-    robotSetExpression(focusRobot, RobotExpression::NORMAL);
+        lv_label_set_text(
+            timerLabel,
+            "00:00:00");
+    }
+    else
+    {
+        pomodoroStop();
+
+        lv_label_set_text(
+            timerLabel,
+            "25:00");
+    }
+
+    lv_label_set_text(
+        stateLabel,
+        "READY");
+
+    lv_label_set_text(
+        mainButtonLabel,
+        "START");
+
+    robotSetExpression(
+        focusRobot,
+        RobotExpression::NORMAL);
 }
 
 void screenFocusCreate()
@@ -404,23 +410,56 @@ void screenFocusCreate()
     lv_label_set_text(pomodoroLabel, "POMODORO");
     lv_obj_center(pomodoroLabel);
 
-    if (running)
+    if (currentFocusMode == FocusMode::FREE)
     {
-        robotSetExpression(
-            focusRobot,
-            RobotExpression::FOCUSED);
-    }
-    else if (paused)
-    {
-        robotSetExpression(
-            focusRobot,
-            RobotExpression::PAUSED);
+        if (freeFocusIsRunning())
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::FOCUSED);
+        }
+        else if (freeFocusIsPaused())
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::PAUSED);
+        }
+        else
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::NORMAL);
+        }
     }
     else
     {
-        robotSetExpression(
-            focusRobot,
-            RobotExpression::NORMAL);
+        if (pomodoroIsRunning())
+        {
+            if (pomodoroGetPhase() == PomodoroPhase::BREAK)
+            {
+                robotSetExpression(
+                    focusRobot,
+                    RobotExpression::PAUSED);
+            }
+            else
+            {
+                robotSetExpression(
+                    focusRobot,
+                    RobotExpression::FOCUSED);
+            }
+        }
+        else if (pomodoroIsPaused())
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::PAUSED);
+        }
+        else
+        {
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::NORMAL);
+        }
     }
 
     lv_obj_align(
@@ -442,10 +481,22 @@ void screenFocusCreate()
     // State
     stateLabel = lv_label_create(screen);
 
-    lv_label_set_text(
-        stateLabel,
-        running ? "FOCUSING" : paused ? "PAUSED"
-                                      : "READY");
+    if (currentFocusMode == FocusMode::FREE)
+    {
+        lv_label_set_text(
+            stateLabel,
+            freeFocusIsRunning()  ? "FOCUSING"
+            : freeFocusIsPaused() ? "PAUSED"
+                                  : "READY");
+    }
+    else
+    {
+        lv_label_set_text(
+            stateLabel,
+            pomodoroIsRunning()  ? "FOCUSING"
+            : pomodoroIsPaused() ? "PAUSED"
+                                 : "READY");
+    }
 
     lv_obj_set_style_text_color(
         stateLabel,
@@ -501,10 +552,22 @@ void screenFocusCreate()
 
     mainButtonLabel = lv_label_create(mainButton);
 
-    lv_label_set_text(
-        mainButtonLabel,
-        running ? "PAUSE" : paused ? "RESUME"
-                                   : "START");
+    if (currentFocusMode == FocusMode::FREE)
+    {
+        lv_label_set_text(
+            mainButtonLabel,
+            freeFocusIsRunning()  ? "PAUSE"
+            : freeFocusIsPaused() ? "RESUME"
+                                  : "START");
+    }
+    else
+    {
+        lv_label_set_text(
+            mainButtonLabel,
+            pomodoroIsRunning()  ? "PAUSE"
+            : pomodoroIsPaused() ? "RESUME"
+                                 : "START");
+    }
 
     lv_obj_center(mainButtonLabel);
 
@@ -574,12 +637,8 @@ void screenFocusUpdate()
 
     if (currentFocusMode == FocusMode::FREE)
     {
-        unsigned long elapsed = pausedElapsed;
-
-        if (running)
-        {
-            elapsed = millis() - startMillis;
-        }
+        unsigned long elapsed =
+            freeFocusGetElapsedMillis();
 
         unsigned long totalSeconds = elapsed / 1000;
 
@@ -601,60 +660,19 @@ void screenFocusUpdate()
     }
     else if (currentFocusMode == FocusMode::POMODORO)
     {
-        unsigned long duration = POMODORO_WORK_MS;
+        pomodoroUpdate();
 
-        if (
-            pomodoroPhase == PomodoroPhase::BREAK ||
-            pomodoroPhase == PomodoroPhase::BREAK_READY)
-        {
-            duration = POMODORO_BREAK_MS;
-        }
+        unsigned long remaining =
+            pomodoroGetRemainingMillis();
 
-        unsigned long elapsed = pausedElapsed;
+        unsigned long totalSeconds =
+            remaining / 1000;
 
-        if (running)
-        {
-            elapsed = millis() - startMillis;
-        }
+        unsigned long minutes =
+            totalSeconds / 60;
 
-        if (elapsed >= duration)
-        {
-            elapsed = duration;
-            running = false;
-            paused = false;
-            pausedElapsed = 0;
-
-            if (pomodoroPhase == PomodoroPhase::WORK)
-            {
-                pomodoroPhase = PomodoroPhase::BREAK_READY;
-
-                lv_label_set_text(
-                    stateLabel,
-                    "WORK DONE");
-
-                lv_label_set_text(
-                    mainButtonLabel,
-                    "START BREAK");
-            }
-            else if (pomodoroPhase == PomodoroPhase::BREAK)
-            {
-                pomodoroPhase = PomodoroPhase::WORK_READY;
-
-                lv_label_set_text(
-                    stateLabel,
-                    "BREAK DONE");
-
-                lv_label_set_text(
-                    mainButtonLabel,
-                    "START WORK");
-            }
-        }
-
-        unsigned long remaining = duration - elapsed;
-
-        unsigned long totalSeconds = remaining / 1000;
-        unsigned long minutes = totalSeconds / 60;
-        unsigned long seconds = totalSeconds % 60;
+        unsigned long seconds =
+            totalSeconds % 60;
 
         char buffer[16];
 
@@ -668,5 +686,29 @@ void screenFocusUpdate()
         lv_label_set_text(
             timerLabel,
             buffer);
+
+        PomodoroPhase phase =
+            pomodoroGetPhase();
+
+        if (phase == PomodoroPhase::BREAK_READY)
+        {
+            lv_label_set_text(
+                stateLabel,
+                "WORK DONE");
+
+            lv_label_set_text(
+                mainButtonLabel,
+                "START BREAK");
+        }
+        else if (phase == PomodoroPhase::WORK_READY)
+        {
+            lv_label_set_text(
+                stateLabel,
+                "BREAK DONE");
+
+            lv_label_set_text(
+                mainButtonLabel,
+                "START WORK");
+        }
     }
 }
