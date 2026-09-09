@@ -5,17 +5,81 @@
 #include <lvgl.h>
 #include <cstdio>
 #include <Arduino.h>
+#include "ui/components/tomato.h"
+
+enum class FocusMode
+{
+    FREE,
+    POMODORO
+};
 
 static lv_obj_t *timerLabel = nullptr;
 static lv_obj_t *stateLabel = nullptr;
 static lv_obj_t *mainButtonLabel = nullptr;
 static lv_obj_t *focusRobot = nullptr;
+static lv_obj_t *freeModeButton = nullptr;
+static lv_obj_t *pomodoroModeButton = nullptr;
+static lv_obj_t *pomodoroIcon = nullptr;
 
 static bool running = false;
 static bool paused = false;
 
 static unsigned long startMillis = 0;
 static unsigned long pausedElapsed = 0;
+static FocusMode currentFocusMode = FocusMode::FREE;
+
+static void updateModeButtons()
+{
+    if (currentFocusMode == FocusMode::FREE)
+    {
+        lv_obj_set_style_bg_color(
+            freeModeButton,
+            lv_color_hex(0x22C55E),
+            0);
+
+        lv_obj_set_style_bg_color(
+            pomodoroModeButton,
+            lv_color_hex(0x475569),
+            0);
+        lv_obj_add_flag(
+            pomodoroIcon,
+            LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_set_style_bg_color(
+            freeModeButton,
+            lv_color_hex(0x475569),
+            0);
+
+        lv_obj_set_style_bg_color(
+            pomodoroModeButton,
+            lv_color_hex(0x22C55E),
+            0);
+
+        lv_obj_remove_flag(
+            pomodoroIcon,
+            LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void freeModeEvent(lv_event_t *event)
+{
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED)
+    {
+        currentFocusMode = FocusMode::FREE;
+        updateModeButtons();
+    }
+}
+
+static void pomodoroModeEvent(lv_event_t *event)
+{
+    if (lv_event_get_code(event) == LV_EVENT_CLICKED)
+    {
+        currentFocusMode = FocusMode::POMODORO;
+        updateModeButtons();
+    }
+}
 
 static void restoreFocusRobot(lv_timer_t *timer)
 {
@@ -191,6 +255,22 @@ void screenFocusCreate()
 
     focusRobot = robotCreate(screen);
 
+    freeModeButton = lv_button_create(screen);
+    lv_obj_set_size(freeModeButton, 78, 30);
+    lv_obj_set_pos(freeModeButton, 25, 62);
+
+    pomodoroModeButton = lv_button_create(screen);
+    lv_obj_set_size(pomodoroModeButton, 105, 30);
+    lv_obj_set_pos(pomodoroModeButton, 209, 62);
+
+    lv_obj_t *freeLabel = lv_label_create(freeModeButton);
+    lv_label_set_text(freeLabel, "FREE");
+    lv_obj_center(freeLabel);
+
+    lv_obj_t *pomodoroLabel = lv_label_create(pomodoroModeButton);
+    lv_label_set_text(pomodoroLabel, "POMODORO");
+    lv_obj_center(pomodoroLabel);
+
     if (running)
     {
         robotSetExpression(
@@ -262,7 +342,6 @@ void screenFocusCreate()
         timerLabel,
         LV_ALIGN_CENTER,
         0,
-        // 26
         24);
 
     // Main button
@@ -324,6 +403,31 @@ void screenFocusCreate()
 
     lv_obj_center(stopLabel);
 
+    lv_obj_add_event_cb(
+        freeModeButton,
+        freeModeEvent,
+        LV_EVENT_CLICKED,
+        nullptr);
+
+    lv_obj_add_event_cb(
+        pomodoroModeButton,
+        pomodoroModeEvent,
+        LV_EVENT_CLICKED,
+        nullptr);
+
+    // tomate
+    pomodoroIcon = tomatoCreate(screen);
+
+    lv_obj_align(
+        pomodoroIcon,
+        LV_ALIGN_CENTER,
+        5,
+        -8);
+
+    lv_obj_add_flag(
+        pomodoroIcon,
+        LV_OBJ_FLAG_HIDDEN);
+
     screenFocusUpdate();
 }
 
@@ -335,28 +439,31 @@ void screenFocusUpdate()
         return;
     }
 
-    unsigned long elapsed = pausedElapsed;
-
-    if (running)
+    if (currentFocusMode == FocusMode::FREE)
     {
-        elapsed = millis() - startMillis;
+        unsigned long elapsed = pausedElapsed;
+
+        if (running)
+        {
+            elapsed = millis() - startMillis;
+        }
+
+        unsigned long totalSeconds = elapsed / 1000;
+
+        unsigned long hours = totalSeconds / 3600;
+        unsigned long minutes = (totalSeconds % 3600) / 60;
+        unsigned long seconds = totalSeconds % 60;
+
+        char buffer[16];
+
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "%02lu:%02lu:%02lu",
+            hours,
+            minutes,
+            seconds);
+
+        lv_label_set_text(timerLabel, buffer);
     }
-
-    unsigned long totalSeconds = elapsed / 1000;
-
-    unsigned long hours = totalSeconds / 3600;
-    unsigned long minutes = (totalSeconds % 3600) / 60;
-    unsigned long seconds = totalSeconds % 60;
-
-    char buffer[16];
-
-    snprintf(
-        buffer,
-        sizeof(buffer),
-        "%02lu:%02lu:%02lu",
-        hours,
-        minutes,
-        seconds);
-
-    lv_label_set_text(timerLabel, buffer);
 }
