@@ -688,6 +688,7 @@ void screenFocusCreate()
         cycleLabel,
         LV_OBJ_FLAG_HIDDEN);
 
+    updateModeButtons();
     screenFocusUpdate();
 }
 
