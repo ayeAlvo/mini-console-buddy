@@ -9,6 +9,7 @@
 #include "focus/free_focus.h"
 #include "focus/pomodoro.h"
 #include "ui/components/confirm_dialog.h"
+#include "ui/components/focus_alert.h"
 
 enum class FocusMode
 {
@@ -25,6 +26,8 @@ static lv_obj_t *pomodoroModeButton = nullptr;
 static lv_obj_t *pomodoroIcon = nullptr;
 static lv_obj_t *cycleLabel = nullptr;
 static FocusMode currentFocusMode = FocusMode::FREE;
+static PomodoroPhase lastPomodoroPhase =
+    PomodoroPhase::WORK;
 
 static void updateModeButtons()
 {
@@ -238,6 +241,7 @@ static void mainButtonEvent(lv_event_t *event)
         if (pomodoroGetPhase() == PomodoroPhase::COMPLETED)
         {
             pomodoroStop();
+            lastPomodoroPhase = PomodoroPhase::WORK;
 
             lv_label_set_text(
                 timerLabel,
@@ -341,6 +345,7 @@ static void confirmStop()
     else
     {
         pomodoroStop();
+        lastPomodoroPhase = PomodoroPhase::WORK;
 
         lv_label_set_text(
             timerLabel,
@@ -754,6 +759,30 @@ void screenFocusUpdate()
 
         PomodoroPhase phase =
             pomodoroGetPhase();
+
+        if (phase != lastPomodoroPhase)
+        {
+            if (phase == PomodoroPhase::BREAK_READY)
+            {
+                focusAlertShow(
+                    lv_screen_active(),
+                    FocusAlertType::WORK_DONE);
+            }
+            else if (phase == PomodoroPhase::WORK_READY)
+            {
+                focusAlertShow(
+                    lv_screen_active(),
+                    FocusAlertType::BREAK_DONE);
+            }
+            else if (phase == PomodoroPhase::COMPLETED)
+            {
+                focusAlertShow(
+                    lv_screen_active(),
+                    FocusAlertType::CYCLE_COMPLETE);
+            }
+
+            lastPomodoroPhase = phase;
+        }
 
         char cycleBuffer[24];
 

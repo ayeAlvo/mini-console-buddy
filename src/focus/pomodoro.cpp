@@ -2,14 +2,13 @@
 
 #include <Arduino.h>
 
-// static const unsigned long POMODORO_WORK_MS =
-//     25UL * 60UL * 1000UL;
-
-// static const unsigned long POMODORO_BREAK_MS =
-//     5UL * 60UL * 1000UL;
-
-static const unsigned long POMODORO_WORK_MS = 10UL * 1000UL;
-static const unsigned long POMODORO_BREAK_MS = 5UL * 1000UL;
+static const unsigned long POMODORO_WORK_MS =
+    25UL * 60UL * 1000UL;
+static const unsigned long POMODORO_BREAK_MS =
+    5UL * 60UL * 1000UL;
+// Para pruebas
+// static const unsigned long POMODORO_WORK_MS = 10UL * 1000UL;
+// static const unsigned long POMODORO_BREAK_MS = 5UL * 1000UL;
 
 static bool running = false;
 static bool paused = false;
