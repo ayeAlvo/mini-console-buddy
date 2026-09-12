@@ -22,7 +22,7 @@ static lv_obj_t *focusRobot = nullptr;
 static lv_obj_t *freeModeButton = nullptr;
 static lv_obj_t *pomodoroModeButton = nullptr;
 static lv_obj_t *pomodoroIcon = nullptr;
-
+static lv_obj_t *cycleLabel = nullptr;
 static FocusMode currentFocusMode = FocusMode::FREE;
 
 static void updateModeButtons()
@@ -38,8 +38,13 @@ static void updateModeButtons()
             pomodoroModeButton,
             lv_color_hex(0x475569),
             0);
+
         lv_obj_add_flag(
             pomodoroIcon,
+            LV_OBJ_FLAG_HIDDEN);
+
+        lv_obj_add_flag(
+            cycleLabel,
             LV_OBJ_FLAG_HIDDEN);
     }
     else
@@ -56,6 +61,10 @@ static void updateModeButtons()
 
         lv_obj_remove_flag(
             pomodoroIcon,
+            LV_OBJ_FLAG_HIDDEN);
+
+        lv_obj_remove_flag(
+            cycleLabel,
             LV_OBJ_FLAG_HIDDEN);
     }
 }
@@ -225,6 +234,28 @@ static void mainButtonEvent(lv_event_t *event)
     else if (currentFocusMode == FocusMode::POMODORO)
     {
         PomodoroPhase phase = pomodoroGetPhase();
+        if (pomodoroGetPhase() == PomodoroPhase::COMPLETED)
+        {
+            pomodoroStop();
+
+            lv_label_set_text(
+                timerLabel,
+                "25:00");
+
+            lv_label_set_text(
+                stateLabel,
+                "READY");
+
+            lv_label_set_text(
+                mainButtonLabel,
+                "START");
+
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::NORMAL);
+
+            return;
+        }
 
         if (
             !pomodoroIsRunning() &&
@@ -624,6 +655,30 @@ void screenFocusCreate()
         pomodoroIcon,
         LV_OBJ_FLAG_HIDDEN);
 
+    // contador de ciclos
+    cycleLabel = lv_label_create(screen);
+
+    lv_obj_set_style_text_color(
+        cycleLabel,
+        lv_color_hex(0xF8FAFC),
+        0);
+
+    lv_obj_set_style_text_font(
+        cycleLabel,
+        &lv_font_montserrat_12,
+        0);
+
+    lv_obj_align_to(
+        cycleLabel,
+        pomodoroModeButton,
+        LV_ALIGN_OUT_BOTTOM_MID,
+        0,
+        4);
+
+    lv_obj_add_flag(
+        cycleLabel,
+        LV_OBJ_FLAG_HIDDEN);
+
     screenFocusUpdate();
 }
 
@@ -690,7 +745,33 @@ void screenFocusUpdate()
         PomodoroPhase phase =
             pomodoroGetPhase();
 
-        if (phase == PomodoroPhase::BREAK_READY)
+        char cycleBuffer[24];
+
+        snprintf(
+            cycleBuffer,
+            sizeof(cycleBuffer),
+            "%d/4",
+            pomodoroGetCurrentCycle());
+
+        lv_label_set_text(
+            cycleLabel,
+            cycleBuffer);
+
+        if (phase == PomodoroPhase::COMPLETED)
+        {
+            lv_label_set_text(
+                stateLabel,
+                "GREAT JOB!");
+
+            lv_label_set_text(
+                mainButtonLabel,
+                "RESET");
+
+            robotSetExpression(
+                focusRobot,
+                RobotExpression::HAPPY);
+        }
+        else if (phase == PomodoroPhase::BREAK_READY)
         {
             lv_label_set_text(
                 stateLabel,

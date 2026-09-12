@@ -5,7 +5,8 @@ enum class PomodoroPhase
     WORK,
     BREAK_READY,
     BREAK,
-    WORK_READY
+    WORK_READY,
+    COMPLETED
 };
 
 void pomodoroStartWork();
@@ -17,10 +18,14 @@ void pomodoroStop();
 
 bool pomodoroIsRunning();
 bool pomodoroIsPaused();
+bool pomodoroIsCompleted();
 
 PomodoroPhase pomodoroGetPhase();
 
 unsigned long pomodoroGetElapsedMillis();
 unsigned long pomodoroGetRemainingMillis();
+
+int pomodoroGetCompletedCycles();
+int pomodoroGetCurrentCycle();
 
 void pomodoroUpdate();

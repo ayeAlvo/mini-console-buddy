@@ -17,23 +17,23 @@ static bool paused = false;
 static unsigned long startMillis = 0;
 static unsigned long pausedElapsed = 0;
 
+static const int TOTAL_CYCLES = 4;
+static int completedCycles = 0;
+
 static PomodoroPhase phase =
     PomodoroPhase::WORK;
-
 
 static unsigned long getCurrentDuration()
 {
     if (
         phase == PomodoroPhase::BREAK ||
-        phase == PomodoroPhase::BREAK_READY
-    )
+        phase == PomodoroPhase::BREAK_READY)
     {
         return POMODORO_BREAK_MS;
     }
 
     return POMODORO_WORK_MS;
 }
-
 
 void pomodoroStartWork()
 {
@@ -46,7 +46,6 @@ void pomodoroStartWork()
     pausedElapsed = 0;
 }
 
-
 void pomodoroStartBreak()
 {
     phase = PomodoroPhase::BREAK;
@@ -57,7 +56,6 @@ void pomodoroStartBreak()
     startMillis = millis();
     pausedElapsed = 0;
 }
-
 
 void pomodoroPause()
 {
@@ -73,7 +71,6 @@ void pomodoroPause()
     paused = true;
 }
 
-
 void pomodoroResume()
 {
     if (!paused)
@@ -88,7 +85,6 @@ void pomodoroResume()
     paused = false;
 }
 
-
 void pomodoroStop()
 {
     running = false;
@@ -98,26 +94,23 @@ void pomodoroStop()
     pausedElapsed = 0;
 
     phase = PomodoroPhase::WORK;
+    completedCycles = 0;
 }
-
 
 bool pomodoroIsRunning()
 {
     return running;
 }
 
-
 bool pomodoroIsPaused()
 {
     return paused;
 }
 
-
 PomodoroPhase pomodoroGetPhase()
 {
     return phase;
 }
-
 
 unsigned long pomodoroGetElapsedMillis()
 {
@@ -129,9 +122,13 @@ unsigned long pomodoroGetElapsedMillis()
     return pausedElapsed;
 }
 
-
 unsigned long pomodoroGetRemainingMillis()
 {
+    if (phase == PomodoroPhase::COMPLETED)
+    {
+        return 0;
+    }
+
     unsigned long duration =
         getCurrentDuration();
 
@@ -145,7 +142,6 @@ unsigned long pomodoroGetRemainingMillis()
 
     return duration - elapsed;
 }
-
 
 void pomodoroUpdate()
 {
@@ -168,12 +164,39 @@ void pomodoroUpdate()
 
     if (phase == PomodoroPhase::WORK)
     {
-        phase =
-            PomodoroPhase::BREAK_READY;
+        phase = PomodoroPhase::BREAK_READY;
     }
     else if (phase == PomodoroPhase::BREAK)
     {
-        phase =
-            PomodoroPhase::WORK_READY;
+        completedCycles++;
+
+        if (completedCycles >= TOTAL_CYCLES)
+        {
+            phase = PomodoroPhase::COMPLETED;
+        }
+        else
+        {
+            phase = PomodoroPhase::WORK_READY;
+        }
     }
+}
+
+int pomodoroGetCompletedCycles()
+{
+    return completedCycles;
+}
+
+int pomodoroGetCurrentCycle()
+{
+    if (completedCycles >= TOTAL_CYCLES)
+    {
+        return TOTAL_CYCLES;
+    }
+
+    return completedCycles + 1;
+}
+
+bool pomodoroIsCompleted()
+{
+    return phase == PomodoroPhase::COMPLETED;
 }
