@@ -8,6 +8,7 @@
 #include "ui/components/tomato.h"
 #include "focus/free_focus.h"
 #include "focus/pomodoro.h"
+#include "ui/components/confirm_dialog.h"
 
 enum class FocusMode
 {
@@ -327,13 +328,8 @@ static void mainButtonEvent(lv_event_t *event)
     }
 }
 
-static void stopButtonEvent(lv_event_t *event)
+static void confirmStop()
 {
-    if (lv_event_get_code(event) != LV_EVENT_CLICKED)
-    {
-        return;
-    }
-
     if (currentFocusMode == FocusMode::FREE)
     {
         freeFocusStop();
@@ -362,6 +358,19 @@ static void stopButtonEvent(lv_event_t *event)
     robotSetExpression(
         focusRobot,
         RobotExpression::NORMAL);
+}
+
+static void stopButtonEvent(lv_event_t *event)
+{
+    if (lv_event_get_code(event) != LV_EVENT_CLICKED)
+    {
+        return;
+    }
+
+    confirmDialogShow(
+        lv_screen_active(),
+        "ARE YOU SURE?",
+        confirmStop);
 }
 
 void screenFocusCreate()
